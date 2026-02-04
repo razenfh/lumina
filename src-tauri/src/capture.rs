@@ -5,6 +5,7 @@ use std::{
   time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
+use image::{ExtendedColorType, ImageEncoder};
 use base64::{engine::general_purpose, Engine as _};
 use thiserror::Error;
 
@@ -117,8 +118,7 @@ fn capture_windows_snip_clipboard() -> Result<String, CaptureError> {
 
     match cb.get_image() {
       Ok(img) => {
-        // img.bytes = BGRA/RGBA? arboard возвращает RGBA (на практике), но безопаснее:
-        // арboard документирует как RGBA.
+        // arboard документирует RGBA
         let width = img.width as u32;
         let height = img.height as u32;
         let rgba = img.bytes.into_owned();
@@ -132,9 +132,9 @@ fn capture_windows_snip_clipboard() -> Result<String, CaptureError> {
             &rgba,
             width,
             height,
-            image::ColorType::Rgba8.into(),
+            ExtendedColorType::Rgba8,
           )
-          .map_err(|e| CaptureError::WindowsPngEncodeError(e.to_string()))?;
+          .map_err(|e: image::ImageError| CaptureError::WindowsPngEncodeError(e.to_string()))?;
 
         return Ok(general_purpose::STANDARD.encode(png_bytes));
       }
