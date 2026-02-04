@@ -5,8 +5,8 @@ use std::{
   time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
-use image::{ExtendedColorType, ImageEncoder};
 use base64::{engine::general_purpose, Engine as _};
+use image::{ExtendedColorType, ImageEncoder};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -128,12 +128,7 @@ fn capture_windows_snip_clipboard() -> Result<String, CaptureError> {
         let encoder = image::codecs::png::PngEncoder::new(&mut png_bytes);
 
         encoder
-          .write_image(
-            &rgba,
-            width,
-            height,
-            ExtendedColorType::Rgba8,
-          )
+          .write_image(&rgba, width, height, ExtendedColorType::Rgba8)
           .map_err(|e: image::ImageError| CaptureError::WindowsPngEncodeError(e.to_string()))?;
 
         return Ok(general_purpose::STANDARD.encode(png_bytes));
