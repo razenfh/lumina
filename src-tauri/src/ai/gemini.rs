@@ -8,6 +8,14 @@ pub async fn ask(
 ) -> Result<String, String> {
   let client = reqwest::Client::new();
 
+  let api_key = api_key.trim();
+  let model = model.trim().trim_start_matches("models/");
+
+  let image_base64 = image_base64.trim();
+  let image_base64 = image_base64
+    .strip_prefix("data:image/png;base64,")
+    .unwrap_or(image_base64);
+
   let body = json!({
     "contents": [{
       "parts": [
@@ -23,7 +31,7 @@ pub async fn ask(
   });
 
   let url = format!(
-    "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
+    "https://generativelanguage.googleapis.com/v1/models/{}:generateContent?key={}",
     model, api_key
   );
 

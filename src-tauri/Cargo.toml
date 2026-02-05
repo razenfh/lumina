@@ -2,7 +2,7 @@
 name = "lumina"
 version = "0.1.0"
 description = "A Tauri App"
-authors = ["you"]
+authors = ["razen"]
 edition = "2021"
 
 [lib]
@@ -26,6 +26,7 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 base64 = "0.22"
 thiserror = "1"
 
+image = { version = "0.25", default-features = false, features = ["png"] }
+
 [target.'cfg(windows)'.dependencies]
 arboard = "3"
-image = { version = "0.25", default-features = false, features = ["png"] }

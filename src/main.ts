@@ -14,12 +14,14 @@ const MODELS: Record<string, { id: string; label: string }[]> = {
     { id: "gpt-4o", label: "gpt-4o (strong)" }
   ],
   gemini: [
-    { id: "gemini-1.5-flash", label: "gemini-1.5-flash (fast)" },
-    { id: "gemini-1.5-pro", label: "gemini-1.5-pro (strong)" }
+    // актуальные модели из твоего ListModels
+    { id: "gemini-2.5-flash", label: "gemini-2.5-flash (fast)" },
+    { id: "gemini-2.5-pro", label: "gemini-2.5-pro (strong)" },
+    { id: "gemini-2.5-flash-lite", label: "gemini-2.5-flash-lite (cheap)" },
+    { id: "gemini-2.0-flash", label: "gemini-2.0-flash" },
+    { id: "gemini-2.0-flash-lite", label: "gemini-2.0-flash-lite" }
   ],
-  deepseek: [
-    { id: "deepseek-chat", label: "deepseek-chat" }
-  ],
+  deepseek: [{ id: "deepseek-chat", label: "deepseek-chat" }],
   ollama: [
     { id: "llama3", label: "llama3" },
     { id: "llava", label: "llava (vision)" }
@@ -178,12 +180,22 @@ function fillModels(provider: string, prefer?: string) {
 
 async function loadUiFromStore() {
   const provider = (await store.get<string>("provider")) ?? "openai";
-  const model = (await store.get<string>("model")) ?? "gpt-4o-mini";
+  let model = (await store.get<string>("model")) ?? "gpt-4o-mini";
   const prompt = (await store.get<string>("prompt")) ?? "Explain what is shown in the selected region.";
+
+  // ---- migrate old Gemini ids (чтобы не ловить 404 из settings.json) ----
+  if (model === "gemini-1.5-flash") model = "gemini-2.5-flash";
+  if (model === "gemini-1.5-pro") model = "gemini-2.5-pro";
 
   providerEl.value = provider;
   fillModels(provider, model);
   promptEl.value = prompt;
+
+  // если реально произошла миграция — сохраним обновлённую модель
+  await store.set("provider", providerEl.value);
+  await store.set("model", getSelectedModel());
+  await store.set("prompt", promptEl.value);
+  await store.save();
 }
 
 async function saveUiToStore() {
