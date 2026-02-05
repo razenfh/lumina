@@ -10,5 +10,5 @@ pub struct AiRequest {
   pub provider: String,
   pub model: String,
   pub prompt: String,
-  pub image_base64: String,
+  pub image_base64: Option<String>,
 }

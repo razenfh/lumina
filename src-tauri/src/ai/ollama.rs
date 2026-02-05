@@ -1,18 +1,34 @@
+
 use serde_json::json;
 
 pub async fn ask(
   model: &str,
   prompt: &str,
-  image_base64: &str,
+  image_base64: Option<&str>,
 ) -> Result<String, String> {
   let client = reqwest::Client::new();
 
-  let body = json!({
-    "model": model,
-    "prompt": prompt,
-    "stream": false,
-    "images": [image_base64]
-  });
+  let model = model.trim();
+  let prompt = prompt;
+
+  let body = if let Some(b64) = image_base64.map(str::trim).filter(|s| !s.is_empty()) {
+    let b64 = b64
+      .strip_prefix("data:image/png;base64,")
+      .unwrap_or(b64);
+
+    json!({
+      "model": model,
+      "prompt": prompt,
+      "stream": false,
+      "images": [b64]
+    })
+  } else {
+    json!({
+      "model": model,
+      "prompt": prompt,
+      "stream": false
+    })
+  };
 
   let res = client
     .post("http://localhost:11434/api/generate")

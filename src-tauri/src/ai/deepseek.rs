@@ -1,24 +1,38 @@
+
 use serde_json::json;
 
 pub async fn ask(
   api_key: &str,
   model: &str,
   prompt: &str,
-  image_base64: &str,
+  image_base64: Option<&str>,
 ) -> Result<String, String> {
   let client = reqwest::Client::new();
+
+  let api_key = api_key.trim();
+  let model = model.trim();
+
+  let mut content = vec![json!({ "type": "text", "text": prompt })];
+
+  if let Some(b64) = image_base64 {
+    let b64 = b64.trim();
+    if !b64.is_empty() {
+      let b64 = b64
+        .strip_prefix("data:image/png;base64,")
+        .unwrap_or(b64);
+
+      content.push(json!({
+        "type": "image_url",
+        "image_url": { "url": format!("data:image/png;base64,{}", b64) }
+      }));
+    }
+  }
 
   let body = json!({
     "model": model,
     "messages": [{
       "role": "user",
-      "content": [
-        { "type": "text", "text": prompt },
-        {
-          "type": "image_url",
-          "image_url": { "url": format!("data:image/png;base64,{}", image_base64) }
-        }
-      ]
+      "content": content
     }]
   });
 

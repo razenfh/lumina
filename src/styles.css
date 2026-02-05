@@ -2,9 +2,22 @@
   color-scheme: dark;
 }
 
+html, body {
+  height: 100%;
+}
+
 body {
   margin: 0;
   font-family: system-ui, sans-serif;
+  overflow: hidden;
+}
+
+.viewport {
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: none;
+  scroll-behavior: auto;
 }
 
 .container {
@@ -58,6 +71,11 @@ button:hover {
   background: rgba(255, 255, 255, 0.10);
 }
 
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 input, select, textarea {
   width: 100%;
   box-sizing: border-box;
@@ -87,6 +105,15 @@ label {
   height: auto;
   display: block;
   border-radius: 10px;
+
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.preview img.show {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .answer {
@@ -98,6 +125,15 @@ label {
   white-space: pre-wrap;
   word-break: break-word;
   min-height: 120px;
+
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.answer.show {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 dialog::backdrop {
@@ -113,29 +149,11 @@ dialog::backdrop {
   opacity: 0.75;
   margin-top: -6px;
 }
-.preview img {
-  opacity: 0;
-  transform: translateY(6px);
-  transition: opacity 180ms ease, transform 180ms ease;
-}
 
-.preview img.show {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.answer {
-  opacity: 0;
-  transform: translateY(6px);
-  transition: opacity 180ms ease, transform 180ms ease;
-}
-
-.answer.show {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+@media (prefers-reduced-motion: reduce) {
+  .preview img,
+  .answer {
+    transition: none;
+    transform: none;
+  }
 }
