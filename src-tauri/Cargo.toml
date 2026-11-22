@@ -1,7 +1,7 @@
 [package]
 name = "lumina"
 version = "0.1.2"
-description = "A Tauri App"
+description = "Cross-platform AI desktop app: capture a screen region and ask an AI model about it"
 authors = ["razen"]
 edition = "2021"
 

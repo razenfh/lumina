@@ -6,11 +6,22 @@ A lightweight desktop client for interacting with AI models, focused on speed an
 ## Features
 
 - Cross-platform (Windows / Linux)
-- Multiple AI providers (e.g. OpenAI / Gemini) via API keys
+- Multiple AI providers: OpenAI, Gemini, DeepSeek and Ollama (local)
 - Local settings storage (keys are stored locally on your machine)
 - Screenshot / region capture workflow (when supported by OS)
 
-> Note: You need your own API keys. This app does not provide keys.
+> Note: You need your own API keys (except for Ollama, which runs locally). This app does not provide keys.
+
+### Screenshot capture requirements
+
+- **Linux:** requires [`spectacle`](https://apps.kde.org/spectacle/) (KDE) to be installed.
+- **Windows:** uses the built-in Snipping Tool (`ms-screenclip:`).
+- **macOS:** region capture is not supported yet.
+
+### Image input
+
+Image input depends on the model. Use a vision-capable model (e.g. `gpt-4o`, `gemini-2.5-*`, `llava` on Ollama);
+text-only models such as `llama3` or `deepseek-chat` may ignore or reject the screenshot.
 
 ---
 
@@ -60,4 +71,5 @@ npm run tauri dev
 
 The app uses a local settings store.
 Add your provider API keys inside the app settings (recommended).
-Keys are stored locally on your machine.
+Keys are stored locally on your machine in `settings.json` (plain text, in the app data directory),
+so keep that file private.

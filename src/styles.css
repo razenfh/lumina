@@ -141,7 +141,7 @@ dialog::backdrop {
 }
 
 .dialog {
-  min-width: 520px;
+  min-width: min(520px, 85vw);
   padding: 16px;
 }
 
