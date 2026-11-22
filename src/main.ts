@@ -1,7 +1,7 @@
 // src/main.ts
 import "./styles.css";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { LazyStore } from "@tauri-apps/plugin-store";
 
 const store = new LazyStore("settings.json");
@@ -148,6 +148,9 @@ function enableSmoothWheelScroll(scroller: HTMLElement) {
   scroller.addEventListener(
     "wheel",
     (e) => {
+      // Let the browser handle pinch/ctrl+wheel zoom and horizontal scrolling.
+      if (e.ctrlKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+
       const el = e.target as HTMLElement | null;
       if (el) {
         const tag = el.tagName;
@@ -238,7 +241,8 @@ function fillModels(provider: string, prefer?: string) {
 }
 
 async function loadUiFromStore() {
-  const provider = (await store.get<string>("provider")) ?? "openai";
+  let provider = (await store.get<string>("provider")) ?? "openai";
+  if (!(provider in MODELS)) provider = "openai";
   let model = (await store.get<string>("model")) ?? "gpt-4o-mini";
   const prompt =
     (await store.get<string>("prompt")) ?? "Explain what is shown in the selected region.";
@@ -273,16 +277,33 @@ function setBusyAsk(isBusy: boolean) {
   askStatusEl.textContent = isBusy ? "Sending…" : "";
 }
 
-async function onceEvent<T>(eventName: string): Promise<T> {
-  return new Promise<T>(async (resolve) => {
-    const unlisten = await listen<T>(eventName, (e) => {
-      try {
-        unlisten();
-      } finally {
-        resolve(e.payload);
-      }
-    });
+function errorMessage(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
+
+// Starts a region capture and resolves with the PNG as base64.
+// Listeners are registered BEFORE the backend is started (otherwise a fast
+// failure, e.g. "spectacle not found", could be emitted before anyone listens
+// and the UI would wait forever) and are always removed afterwards.
+async function captureRegion(): Promise<string> {
+  let resolveCapture!: (b64: string) => void;
+  let rejectCapture!: (err: Error) => void;
+  const result = new Promise<string>((resolve, reject) => {
+    resolveCapture = resolve;
+    rejectCapture = reject;
   });
+
+  const unlisteners: UnlistenFn[] = await Promise.all([
+    listen<string>("capture-done", (e) => resolveCapture(e.payload)),
+    listen<string>("capture-error", (e) => rejectCapture(new Error(e.payload)))
+  ]);
+
+  try {
+    await invoke("start_capture_region");
+    return await result;
+  } finally {
+    for (const unlisten of unlisteners) unlisten();
+  }
 }
 
 // ---------------- Events ----------------
@@ -294,17 +315,7 @@ btnCapture.addEventListener("click", async () => {
   answerEl.classList.remove("show");
 
   try {
-
-    await invoke("start_capture_region");
-
-    const doneP = onceEvent<string>("capture-done").then((b64) => ({ ok: true as const, b64 }));
-    const errP = onceEvent<string>("capture-error").then((msg) => ({ ok: false as const, msg }));
-
-    const result = await Promise.race([doneP, errP]);
-
-    if (!result.ok) throw new Error(result.msg);
-
-    const b64 = result.b64;
+    const b64 = await captureRegion();
     if (!b64 || b64.length < 100) throw new Error("Empty image data");
 
     img.src = `data:image/png;base64,${b64}`;
@@ -313,23 +324,26 @@ btnCapture.addEventListener("click", async () => {
     img.scrollIntoView({ behavior: "smooth", block: "nearest" });
   } catch (e) {
     console.error(e);
-    statusEl.textContent = `Error: ${String(e)}`;
+    statusEl.textContent = `Error: ${errorMessage(e)}`;
   } finally {
     setBusyCapture(false);
   }
 });
 
 btnAsk.addEventListener("click", async () => {
-  setBusyAsk(true);
-  answerEl.textContent = "";
-  answerEl.classList.remove("show");
-
   const model = getSelectedModel();
   if (!model) {
     askStatusEl.textContent = "Select a model.";
-    setBusyAsk(false);
     return;
   }
+  if (!promptEl.value.trim()) {
+    askStatusEl.textContent = "Enter a prompt.";
+    return;
+  }
+
+  setBusyAsk(true);
+  answerEl.textContent = "";
+  answerEl.classList.remove("show");
 
   const image_base64 = getImageBase64FromImgSrc();
 
@@ -352,7 +366,7 @@ btnAsk.addEventListener("click", async () => {
   } catch (e) {
     console.error(e);
     askStatusEl.textContent = "Error";
-    answerEl.textContent = String(e);
+    answerEl.textContent = errorMessage(e);
     answerEl.classList.add("show");
   } finally {
     setBusyAsk(false);

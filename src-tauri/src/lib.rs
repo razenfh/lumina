@@ -7,11 +7,6 @@ use tauri::{AppHandle, Emitter};
 use tauri_plugin_store::StoreExt;
 
 #[tauri::command]
-fn capture_region() -> Result<String, String> {
-  capture::capture_region_png_base64().map_err(|e| e.to_string())
-}
-
-#[tauri::command]
 fn start_capture_region(app: AppHandle) -> Result<(), String> {
   std::thread::spawn(move || {
     let res = capture::capture_region_png_base64();
@@ -40,6 +35,10 @@ fn get_key(app: &tauri::AppHandle, key_name: &str) -> Result<String, String> {
 
 #[tauri::command]
 async fn ask_ai(app: tauri::AppHandle, req: AiRequest) -> Result<String, String> {
+  if req.prompt.trim().is_empty() {
+    return Err("Prompt is empty".into());
+  }
+
   let image = req
     .image_base64
     .as_deref()
@@ -81,11 +80,7 @@ pub fn run() {
 
       Ok(())
     })
-    .invoke_handler(tauri::generate_handler![
-      capture_region,
-      start_capture_region,
-      ask_ai
-    ])
+    .invoke_handler(tauri::generate_handler![start_capture_region, ask_ai])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }
